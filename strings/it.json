@@ -354,5 +354,10 @@
   "ToastPodcastCreateSuccess": "Podcast creato correttamente",
   "ToastRSSFeedCloseFailed": "Errore chiusura flusso RSS",
   "ToastRSSFeedCloseSuccess": "Flusso RSS chiuso",
-  "ToastStreamingNotAllowedOnCellular": "Lo streaming non è consentito sui dati mobili"
+  "ToastStreamingNotAllowedOnCellular": "Lo streaming non è consentito sui dati mobili",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

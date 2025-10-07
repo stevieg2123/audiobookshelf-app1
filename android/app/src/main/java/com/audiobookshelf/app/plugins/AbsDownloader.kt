@@ -14,6 +14,7 @@ import com.audiobookshelf.app.server.ApiHandler
 import com.audiobookshelf.app.managers.DownloadItemManager
 import com.fasterxml.jackson.core.json.JsonReadFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -42,6 +43,27 @@ class AbsDownloader : Plugin() {
     override fun onDownloadItemComplete(jsobj:JSObject) {
       notifyListeners("onItemDownloadComplete", jsobj)
     }
+    override fun onDownloadItemFailed(
+            downloadItem: DownloadItem,
+            downloadItemPart: DownloadItemPart,
+            reason: String?
+    ) {
+      val payload = JSObject()
+      payload.put("downloadItemId", downloadItem.id)
+      payload.put("libraryItemId", downloadItem.libraryItemId)
+      downloadItem.episodeId?.let { payload.put("episodeId", it) }
+      payload.put("itemTitle", downloadItem.itemTitle)
+      reason?.let { payload.put("reason", it) }
+
+      val partsArray = JSArray()
+      val partObject = JSObject()
+      partObject.put("id", downloadItemPart.id)
+      partObject.put("filename", downloadItemPart.filename)
+      partsArray.put(partObject)
+      payload.put("parts", partsArray)
+
+      notifyListeners("onDownloadItemFailed", payload)
+    }
   })
 
   override fun load() {
@@ -50,6 +72,7 @@ class AbsDownloader : Plugin() {
     folderScanner = FolderScanner(mainActivity)
     apiHandler = ApiHandler(mainActivity)
     downloadItemManager = DownloadItemManager(downloadManager, folderScanner, mainActivity, clientEventEmitter)
+    restorePersistedDownloads()
   }
 
   @PluginMethod
@@ -109,6 +132,33 @@ class AbsDownloader : Plugin() {
     }
   }
 
+  @PluginMethod
+  fun resumeDownload(call: PluginCall) {
+    val downloadItemId = call.data.getString("downloadItemId")
+    if (downloadItemId.isNullOrEmpty()) {
+      call.resolve(JSObject("{\"error\":\"downloadItemId not specified\"}"))
+      return
+    }
+
+    val didResume = downloadItemManager.retryDownloadItem(downloadItemId)
+    if (!didResume) {
+      call.resolve(JSObject("{\"error\":\"Download not found or not interrupted\"}"))
+    } else {
+      call.resolve()
+    }
+  }
+
+  @PluginMethod
+  fun getDownloadQueue(call: PluginCall) {
+    val downloads = DeviceManager.dbManager.getDownloadItems()
+    val itemsArray = JSArray()
+    downloads.forEach { itemsArray.put(JSObject(jacksonMapper.writeValueAsString(it))) }
+
+    val result = JSObject()
+    result.put("items", itemsArray)
+    call.resolve(result)
+  }
+
   // Item filenames could be the same if they are in sub-folders, this will make them unique
   private fun getFilenameFromRelPath(relPath: String): String {
     var cleanedRelPath = relPath.replace("\\", "_").replace("/", "_")
@@ -127,6 +177,11 @@ class AbsDownloader : Plugin() {
       newTitle = newTitle.replace(it, "")
     }
     return newTitle
+  }
+
+  private fun restorePersistedDownloads() {
+    val persistedDownloads = DeviceManager.dbManager.getDownloadItems()
+    persistedDownloads.forEach { downloadItemManager.restoreDownloadItem(it) }
   }
 
   private fun startLibraryItemDownload(libraryItem: LibraryItem, localFolder: LocalFolder, episode:PodcastEpisode?) {

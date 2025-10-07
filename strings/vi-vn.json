@@ -315,5 +315,10 @@
   "ToastPodcastCreateFailed": "Không thể tạo podcast",
   "ToastPodcastCreateSuccess": "Tạo podcast thành công",
   "ToastRSSFeedCloseFailed": "Không thể đóng RSS feed",
-  "ToastRSSFeedCloseSuccess": "Đóng RSS feed thành công"
+  "ToastRSSFeedCloseSuccess": "Đóng RSS feed thành công",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

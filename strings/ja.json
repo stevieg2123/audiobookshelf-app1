@@ -160,5 +160,10 @@
   "LabelPodcast": "ポッドキャスト",
   "LabelPodcasts": "ポッドキャスト",
   "LabelPreventIndexing": "フィードがiTunesおよびGoogleのポッドキャストディレクトリにインデックス登録されるのを防ぎます",
-  "LabelPublishYear": "公開年"
+  "LabelPublishYear": "公開年",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

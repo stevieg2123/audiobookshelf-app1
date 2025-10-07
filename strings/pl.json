@@ -353,5 +353,10 @@
   "ToastPodcastCreateSuccess": "Podcast został pomyślnie utworzony",
   "ToastRSSFeedCloseFailed": "Zamknięcie kanału RSS nie powiodło się",
   "ToastRSSFeedCloseSuccess": "Zamknięcie kanału RSS powiodło się",
-  "ToastStreamingNotAllowedOnCellular": "Transmisja nie jest dozwolona w przy użyciu danych komórkowych"
+  "ToastStreamingNotAllowedOnCellular": "Transmisja nie jest dozwolona w przy użyciu danych komórkowych",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

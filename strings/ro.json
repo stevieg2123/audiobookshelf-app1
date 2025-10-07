@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Podcast creat cu succes",
   "ToastRSSFeedCloseFailed": "Nu s-a putut închide fluxul RSS",
   "ToastRSSFeedCloseSuccess": "Flux RSS închis",
-  "ToastStreamingNotAllowedOnCellular": "Redarea online nu este permisă pe date mobile"
+  "ToastStreamingNotAllowedOnCellular": "Redarea online nu este permisă pe date mobile",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

@@ -54,6 +54,11 @@ class DownloadItemManager(
     fun onDownloadItem(downloadItem: DownloadItem)
     fun onDownloadItemPartUpdate(downloadItemPart: DownloadItemPart)
     fun onDownloadItemComplete(jsobj: JSObject)
+    fun onDownloadItemFailed(
+            downloadItem: DownloadItem,
+            downloadItemPart: DownloadItemPart,
+            reason: String? = null
+    )
   }
 
   interface InternalProgressCallback {
@@ -73,6 +78,47 @@ class DownloadItemManager(
     downloadItemQueue.add(downloadItem)
     clientEventEmitter.onDownloadItem(downloadItem)
     checkUpdateDownloadQueue()
+  }
+
+  /** Restores a download item from persisted storage. */
+  fun restoreDownloadItem(downloadItem: DownloadItem) {
+    if (downloadItemQueue.find { it.id == downloadItem.id } != null) return
+
+    downloadItem.downloadItemParts.forEach { part ->
+      if (part.failed) {
+        cleanupAfterFailure(part)
+      } else if (!part.completed) {
+        part.downloadId = null
+      }
+      part.isMoving = false
+    }
+
+    downloadItemQueue.add(downloadItem)
+    clientEventEmitter.onDownloadItem(downloadItem)
+    DeviceManager.dbManager.saveDownloadItem(downloadItem)
+    checkUpdateDownloadQueue()
+  }
+
+  /** Resets failed parts for a download item and restarts the queue. */
+  fun retryDownloadItem(downloadItemId: String): Boolean {
+    val downloadItem = downloadItemQueue.find { it.id == downloadItemId }
+            ?: return false
+
+    var hasFailedPart = false
+    downloadItem.downloadItemParts.forEach { part ->
+      if (part.failed) {
+        resetFailedDownloadItemPart(part)
+        clientEventEmitter.onDownloadItemPartUpdate(part)
+        hasFailedPart = true
+      }
+    }
+
+    if (!hasFailedPart) return false
+
+    DeviceManager.dbManager.saveDownloadItem(downloadItem)
+    clientEventEmitter.onDownloadItem(downloadItem)
+    checkUpdateDownloadQueue()
+    return true
   }
 
   /** Checks and updates the download queue. */
@@ -108,8 +154,51 @@ class DownloadItemManager(
     }
   }
 
+  private fun deleteFileIfExists(path: String?) {
+    if (path.isNullOrEmpty()) return
+    val file = File(path)
+    if (file.exists()) {
+      file.delete()
+    }
+  }
+
+  private fun cleanupAfterFailure(downloadItemPart: DownloadItemPart) {
+    deleteFileIfExists(downloadItemPart.destinationUri.path)
+    if (!downloadItemPart.moved) {
+      deleteFileIfExists(downloadItemPart.finalDestinationPath)
+    }
+
+    downloadItemPart.downloadId = null
+    downloadItemPart.completed = false
+    downloadItemPart.isMoving = false
+    downloadItemPart.moved = false
+    downloadItemPart.progress = 0
+    downloadItemPart.bytesDownloaded = 0
+  }
+
+  private fun resetFailedDownloadItemPart(downloadItemPart: DownloadItemPart) {
+    cleanupAfterFailure(downloadItemPart)
+    downloadItemPart.failed = false
+  }
+
+  private fun handleDownloadItemPartFailure(
+          downloadItem: DownloadItem,
+          downloadItemPart: DownloadItemPart,
+          reason: String? = null
+  ) {
+    downloadItemPart.downloadId?.let { downloadManager.remove(it) }
+    cleanupAfterFailure(downloadItemPart)
+    currentDownloadItemParts.remove(downloadItemPart)
+    DeviceManager.dbManager.saveDownloadItem(downloadItem)
+    clientEventEmitter.onDownloadItemPartUpdate(downloadItemPart)
+    clientEventEmitter.onDownloadItemFailed(downloadItem, downloadItemPart, reason)
+  }
+
   /** Starts an internal download. */
   private fun startInternalDownload(downloadItemPart: DownloadItemPart) {
+    deleteFileIfExists(downloadItemPart.finalDestinationPath)
+    deleteFileIfExists(downloadItemPart.destinationUri.path)
+
     val file = File(downloadItemPart.finalDestinationPath)
     file.parentFile?.mkdirs()
 
@@ -123,7 +212,11 @@ class DownloadItemManager(
 
               override fun onComplete(failed: Boolean) {
                 downloadItemPart.failed = failed
-                downloadItemPart.completed = true
+                downloadItemPart.completed = !failed
+                if (failed) {
+                  downloadItemPart.bytesDownloaded = 0
+                  downloadItemPart.progress = 0
+                }
               }
             }
 
@@ -134,11 +227,23 @@ class DownloadItemManager(
     InternalDownloadManager(fileOutputStream, internalProgressCallback)
             .download(downloadItemPart.serverUrl)
     downloadItemPart.downloadId = 1
+    downloadItemPart.failed = false
+    downloadItemPart.isMoving = false
     currentDownloadItemParts.add(downloadItemPart)
   }
 
   /** Starts an external download. */
   private fun startExternalDownload(downloadItemPart: DownloadItemPart) {
+    deleteFileIfExists(downloadItemPart.destinationUri.path)
+    if (!downloadItemPart.moved) {
+      deleteFileIfExists(downloadItemPart.finalDestinationPath)
+    }
+    downloadItemPart.failed = false
+    downloadItemPart.completed = false
+    downloadItemPart.progress = 0
+    downloadItemPart.bytesDownloaded = 0
+    downloadItemPart.isMoving = false
+
     val dlRequest = downloadItemPart.getDownloadRequest()
     val downloadId = downloadManager.enqueue(dlRequest)
     downloadItemPart.downloadId = downloadId
@@ -180,10 +285,18 @@ class DownloadItemManager(
   private fun handleInternalDownloadPart(downloadItemPart: DownloadItemPart) {
     clientEventEmitter.onDownloadItemPartUpdate(downloadItemPart)
 
-    if (downloadItemPart.completed) {
-      val downloadItem = downloadItemQueue.find { it.id == downloadItemPart.downloadItemId }
-      downloadItem?.let { checkDownloadItemFinished(it) }
+    val downloadItem = downloadItemQueue.find { it.id == downloadItemPart.downloadItemId }
+    if (downloadItem == null) {
       currentDownloadItemParts.remove(downloadItemPart)
+      return
+    }
+
+    if (downloadItemPart.failed) {
+      handleDownloadItemPartFailure(downloadItem, downloadItemPart)
+    } else if (downloadItemPart.completed) {
+      DeviceManager.dbManager.saveDownloadItem(downloadItem)
+      currentDownloadItemParts.remove(downloadItemPart)
+      checkDownloadItemFinished(downloadItem)
     }
   }
 
@@ -229,9 +342,8 @@ class DownloadItemManager(
           }
           DownloadManager.STATUS_FAILED -> {
             Log.d(tag, "checkDownloads Download ${downloadItemPart.filename} Failed")
-            downloadItemPart.completed = true
             downloadItemPart.failed = true
-
+            downloadItemPart.completed = false
             DownloadCheckStatus.Failed
           }
           else -> {
@@ -249,8 +361,8 @@ class DownloadItemManager(
         }
       } else {
         Log.d(tag, "Download ${downloadItemPart.filename} not found in dlmanager")
-        downloadItemPart.completed = true
         downloadItemPart.failed = true
+        downloadItemPart.completed = false
         return DownloadCheckStatus.Failed
       }
     }
@@ -268,11 +380,12 @@ class DownloadItemManager(
               "Download item part finished but download item not found ${downloadItemPart.filename}"
       )
       currentDownloadItemParts.remove(downloadItemPart)
-    } else if (downloadCheckStatus == DownloadCheckStatus.Successful) {
-      moveDownloadedFile(downloadItem, downloadItemPart)
-    } else if (downloadCheckStatus != DownloadCheckStatus.InProgress) {
-      checkDownloadItemFinished(downloadItem)
-      currentDownloadItemParts.remove(downloadItemPart)
+    } else {
+      when (downloadCheckStatus) {
+        DownloadCheckStatus.Successful -> moveDownloadedFile(downloadItem, downloadItemPart)
+        DownloadCheckStatus.Failed -> handleDownloadItemPartFailure(downloadItem, downloadItemPart)
+        DownloadCheckStatus.InProgress -> {}
+      }
     }
   }
 
@@ -290,10 +403,8 @@ class DownloadItemManager(
               override fun onFailed(errorCode: ErrorCode) {
                 Log.e(tag, "DOWNLOAD: FAILED TO MOVE FILE $errorCode")
                 downloadItemPart.failed = true
-                downloadItemPart.isMoving = false
                 file?.delete()
-                checkDownloadItemFinished(downloadItem)
-                currentDownloadItemParts.remove(downloadItemPart)
+                handleDownloadItemPartFailure(downloadItem, downloadItemPart, errorCode.toString())
               }
 
               override fun onCompleted(result: Any) {
@@ -314,6 +425,7 @@ class DownloadItemManager(
 
                 downloadItemPart.moved = true
                 downloadItemPart.isMoving = false
+                DeviceManager.dbManager.saveDownloadItem(downloadItem)
                 checkDownloadItemFinished(downloadItem)
                 currentDownloadItemParts.remove(downloadItemPart)
               }
@@ -325,8 +437,7 @@ class DownloadItemManager(
       // Failed
       downloadItemPart.failed = true
       Log.e(tag, "Local Folder File from uri is null")
-      checkDownloadItemFinished(downloadItem)
-      currentDownloadItemParts.remove(downloadItemPart)
+      handleDownloadItemPartFailure(downloadItem, downloadItemPart)
     } else {
       downloadItemPart.isMoving = true
       val mimetype = if (downloadItemPart.audioTrack != null) MimeType.AUDIO else MimeType.IMAGE

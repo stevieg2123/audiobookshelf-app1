@@ -273,5 +273,10 @@
   "MessageAttemptingServerConnection": "Sunucusu bağlantısı deneniyor...",
   "MessageAudiobookshelfServerNotConnected": "Audiobookshelf sunucusu bağlı değil",
   "MessageAudiobookshelfServerRequired": "<strong>Önemli!</strong> Bu uygulama sizin ya da tanıdığınız birinin hostladığı bir Audiobookshelf sunucusu ile birlikte çalışması için tasarlanmıştır. Bu uygulama herhangi bir içerik sunmaz.",
-  "MessageBookshelfEmpty": "Kitaplık boş"
+  "MessageBookshelfEmpty": "Kitaplık boş",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "A podcast sikeresen létrehozva",
   "ToastRSSFeedCloseFailed": "Az RSS hírcsatorna bezárása sikertelen",
   "ToastRSSFeedCloseSuccess": "Az RSS hírcsatorna sikeresen bezárva",
-  "ToastStreamingNotAllowedOnCellular": "Streamelés mobilinternettel nem engedélyezett"
+  "ToastStreamingNotAllowedOnCellular": "Streamelés mobilinternettel nem engedélyezett",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Подкаст успешно создан",
   "ToastRSSFeedCloseFailed": "Не удалось закрыть RSS-ленту",
   "ToastRSSFeedCloseSuccess": "RSS-лента закрыта",
-  "ToastStreamingNotAllowedOnCellular": "Потоковая передача данных по сотовой сети запрещена"
+  "ToastStreamingNotAllowedOnCellular": "Потоковая передача данных по сотовой сети запрещена",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

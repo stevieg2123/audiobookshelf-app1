@@ -354,5 +354,10 @@
   "ToastPodcastCreateSuccess": "Podcast oprettet med succes",
   "ToastRSSFeedCloseFailed": "Mislykkedes lukning af RSS-feed",
   "ToastRSSFeedCloseSuccess": "RSS-feed lukket",
-  "ToastStreamingNotAllowedOnCellular": "Det er ikke tillad at streame over mobildata"
+  "ToastStreamingNotAllowedOnCellular": "Det er ikke tillad at streame over mobildata",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

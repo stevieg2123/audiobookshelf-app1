@@ -4,6 +4,14 @@ class AbsDownloaderWeb extends WebPlugin {
   constructor() {
     super()
   }
+
+  async resumeDownload() {
+    return {}
+  }
+
+  async getDownloadQueue() {
+    return { items: [] }
+  }
 }
 
 const AbsDownloader = registerPlugin('AbsDownloader', {
