@@ -350,5 +350,6 @@
   "ToastPodcastCreateSuccess": "تم إنشاء البودكاست بنجاح",
   "ToastRSSFeedCloseFailed": "فشل إغلاق مغذّي RSS",
   "ToastRSSFeedCloseSuccess": "تم إغلاق مغذّي RSS",
-  "ToastStreamingNotAllowedOnCellular": "لا يُسمح بالبث عبر البيانات الخلوية"
+  "ToastStreamingNotAllowedOnCellular": "لا يُسمح بالبث عبر البيانات الخلوية",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

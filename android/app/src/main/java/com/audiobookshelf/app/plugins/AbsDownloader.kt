@@ -109,6 +109,28 @@ class AbsDownloader : Plugin() {
     }
   }
 
+  @PluginMethod
+  fun pauseActiveDownloads(call: PluginCall) {
+    try {
+      downloadItemManager.pauseActiveDownloads()
+      call.resolve()
+    } catch (error: Exception) {
+      Log.e(tag, "Failed to pause downloads", error)
+      call.reject("Failed to pause downloads", error)
+    }
+  }
+
+  @PluginMethod
+  fun resumeActiveDownloads(call: PluginCall) {
+    try {
+      downloadItemManager.resumeActiveDownloads()
+      call.resolve()
+    } catch (error: Exception) {
+      Log.e(tag, "Failed to resume downloads", error)
+      call.reject("Failed to resume downloads", error)
+    }
+  }
+
   // Item filenames could be the same if they are in sub-folders, this will make them unique
   private fun getFilenameFromRelPath(relPath: String): String {
     var cleanedRelPath = relPath.replace("\\", "_").replace("/", "_")

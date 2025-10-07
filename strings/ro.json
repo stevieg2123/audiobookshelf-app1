@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "Podcast creat cu succes",
   "ToastRSSFeedCloseFailed": "Nu s-a putut închide fluxul RSS",
   "ToastRSSFeedCloseSuccess": "Flux RSS închis",
-  "ToastStreamingNotAllowedOnCellular": "Redarea online nu este permisă pe date mobile"
+  "ToastStreamingNotAllowedOnCellular": "Redarea online nu este permisă pe date mobile",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

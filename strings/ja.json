@@ -160,5 +160,6 @@
   "LabelPodcast": "ポッドキャスト",
   "LabelPodcasts": "ポッドキャスト",
   "LabelPreventIndexing": "フィードがiTunesおよびGoogleのポッドキャストディレクトリにインデックス登録されるのを防ぎます",
-  "LabelPublishYear": "公開年"
+  "LabelPublishYear": "公開年",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

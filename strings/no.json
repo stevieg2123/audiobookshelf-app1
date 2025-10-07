@@ -354,5 +354,6 @@
   "ToastPodcastCreateSuccess": "Podcast opprettet",
   "ToastRSSFeedCloseFailed": "Misslykkes å lukke RSS feed",
   "ToastRSSFeedCloseSuccess": "RSS feed lukket",
-  "ToastStreamingNotAllowedOnCellular": "Strømming tillates ikke over mobildata"
+  "ToastStreamingNotAllowedOnCellular": "Strømming tillates ikke over mobildata",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

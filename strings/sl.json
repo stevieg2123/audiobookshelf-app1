@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "Podcast je bil uspešno ustvarjen",
   "ToastRSSFeedCloseFailed": "Vira RSS ni bilo mogoče zapreti",
   "ToastRSSFeedCloseSuccess": "Vir RSS je bil zaprt",
-  "ToastStreamingNotAllowedOnCellular": "Pretakanje ni dovoljeno na mobilnih podatkih"
+  "ToastStreamingNotAllowedOnCellular": "Pretakanje ni dovoljeno na mobilnih podatkih",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

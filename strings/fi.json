@@ -343,5 +343,6 @@
   "ToastPodcastCreateSuccess": "Podcastin luominen onnistui",
   "ToastRSSFeedCloseFailed": "RSS syötteen sulkeminen epäonnistui",
   "ToastRSSFeedCloseSuccess": "RSS syöte suljettu",
-  "ToastStreamingNotAllowedOnCellular": "Suoratoisto ei ole sallittu mobiilidatalla"
+  "ToastStreamingNotAllowedOnCellular": "Suoratoisto ei ole sallittu mobiilidatalla",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

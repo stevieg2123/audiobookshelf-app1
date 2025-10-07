@@ -315,5 +315,6 @@
   "ToastPodcastCreateFailed": "Không thể tạo podcast",
   "ToastPodcastCreateSuccess": "Tạo podcast thành công",
   "ToastRSSFeedCloseFailed": "Không thể đóng RSS feed",
-  "ToastRSSFeedCloseSuccess": "Đóng RSS feed thành công"
+  "ToastRSSFeedCloseSuccess": "Đóng RSS feed thành công",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

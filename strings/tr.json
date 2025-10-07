@@ -273,5 +273,6 @@
   "MessageAttemptingServerConnection": "Sunucusu bağlantısı deneniyor...",
   "MessageAudiobookshelfServerNotConnected": "Audiobookshelf sunucusu bağlı değil",
   "MessageAudiobookshelfServerRequired": "<strong>Önemli!</strong> Bu uygulama sizin ya da tanıdığınız birinin hostladığı bir Audiobookshelf sunucusu ile birlikte çalışması için tasarlanmıştır. Bu uygulama herhangi bir içerik sunmaz.",
-  "MessageBookshelfEmpty": "Kitaplık boş"
+  "MessageBookshelfEmpty": "Kitaplık boş",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "Podcast created successfully",
   "ToastRSSFeedCloseFailed": "Failed to close RSS feed",
   "ToastRSSFeedCloseSuccess": "RSS feed closed",
-  "ToastStreamingNotAllowedOnCellular": "Streaming is not allowed on cellular data"
+  "ToastStreamingNotAllowedOnCellular": "Streaming is not allowed on cellular data",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

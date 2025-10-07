@@ -349,5 +349,6 @@
   "ToastPodcastCreateSuccess": "הפודקאסט נוצר בהצלחה",
   "ToastRSSFeedCloseFailed": "סגירת ערוץ ה-RSS נכשלה",
   "ToastRSSFeedCloseSuccess": "ערוץ ה-RSS נסגר בהצלחה",
-  "ToastStreamingNotAllowedOnCellular": "הזרמה אינה מותרת באמצעות נתונים סלולריים"
+  "ToastStreamingNotAllowedOnCellular": "הזרמה אינה מותרת באמצעות נתונים סלולריים",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

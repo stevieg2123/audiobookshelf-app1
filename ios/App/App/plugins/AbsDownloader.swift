@@ -14,7 +14,9 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
     public var identifier = "AbsDownloaderPlugin"
     public var jsName = "AbsDownloader"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "downloadLibraryItem", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "downloadLibraryItem", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pauseActiveDownloads", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resumeActiveDownloads", returnType: CAPPluginReturnPromise)
     ]
     
     static private let downloadsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -402,7 +404,29 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
         
         return itemDirectory
     }
-    
+
+    @objc func pauseActiveDownloads(_ call: CAPPluginCall) {
+        session.getAllTasks { tasks in
+            tasks.forEach { task in
+                if task.state == .running {
+                    task.suspend()
+                }
+            }
+            call.resolve()
+        }
+    }
+
+    @objc func resumeActiveDownloads(_ call: CAPPluginCall) {
+        session.getAllTasks { tasks in
+            tasks.forEach { task in
+                if task.state == .suspended {
+                    task.resume()
+                }
+            }
+            call.resolve()
+        }
+    }
+
     static func itemDownloadFolder(path: String) -> URL? {
         do {
             var itemFolder = AbsDownloader.downloadsDirectory.appendingPathComponent(path)

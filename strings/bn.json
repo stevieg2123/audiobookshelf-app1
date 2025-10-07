@@ -323,5 +323,6 @@
   "ToastPodcastCreateSuccess": "পডকাস্ট সফলভাবে তৈরি করা হয়েছে",
   "ToastRSSFeedCloseFailed": "RSS ফিড বন্ধ করতে ব্যর্থ",
   "ToastRSSFeedCloseSuccess": "RSS ফিড বন্ধ",
-  "ToastStreamingNotAllowedOnCellular": "সেলুলার ডেটাতে স্ট্রিমিং অনুমোদিত নয়"
+  "ToastStreamingNotAllowedOnCellular": "সেলুলার ডেটাতে স্ট্রিমিং অনুমোদিত নয়",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

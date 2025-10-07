@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "Podcast byl úspěšně vytvořen",
   "ToastRSSFeedCloseFailed": "Nepodařilo se zavřít RSS kanál",
   "ToastRSSFeedCloseSuccess": "RSS kanál uzavřen",
-  "ToastStreamingNotAllowedOnCellular": "Přehrávání přes mobilní data není povoleno"
+  "ToastStreamingNotAllowedOnCellular": "Přehrávání přes mobilní data není povoleno",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

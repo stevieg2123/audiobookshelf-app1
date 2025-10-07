@@ -173,5 +173,6 @@
   "LabelTitle": "Pealkiri",
   "LabelTotalSize": "Kogusuurus",
   "LabelType": "Tüüp",
-  "LabelUnknown": "Teadmata"
+  "LabelUnknown": "Teadmata",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }
