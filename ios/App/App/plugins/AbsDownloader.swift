@@ -14,7 +14,9 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
     public var identifier = "AbsDownloaderPlugin"
     public var jsName = "AbsDownloader"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "downloadLibraryItem", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "downloadLibraryItem", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resumeDownload", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getDownloadQueue", returnType: CAPPluginReturnPromise)
     ]
     
     static private let downloadsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -30,7 +32,12 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
     private let progressStatusQueue = DispatchQueue(label: "progress-status-queue", attributes: .concurrent)
     private var downloadItemProgress = [String: DownloadItem]()
     private var monitoringProgressTimer: Timer?
-    
+
+    override public func load() {
+        super.load()
+        restorePersistedDownloads()
+    }
+
     
     // MARK: - Progress handling
     
@@ -65,9 +72,13 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         handleDownloadTaskUpdate(downloadTask: task) { downloadItem, downloadItemPart in
             if let error = error {
-                try Realm().write {
-                    downloadItemPart.completed = true
+                let realm = try Realm()
+                try realm.write {
+                    downloadItemPart.completed = false
                     downloadItemPart.failed = true
+                }
+                if let destinationUrl = downloadItemPart.destinationURL {
+                    try? FileManager.default.removeItem(at: destinationUrl)
                 }
                 throw error
             }
@@ -166,11 +177,22 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
                             try? item.delete()
                         }
                     }
-                    
+
+                    func handleFailedDownloadItem(_ item: DownloadItem) {
+                        self.progressStatusQueue.async(flags: .barrier) {
+                            self.downloadItemProgress.removeValue(forKey: item.id!)
+                        }
+                        self.handleDownloadTaskFailureFromDownloadItem(item)
+                    }
+
                     // Check for items done downloading
                     if let activeDownloads = fetchActiveDownloads() {
                         for item in activeDownloads.values {
-                            if item.isDoneDownloading() { handleDoneDownloadItem(item) }
+                            if item.downloadItemParts.contains(where: { $0.failed }) {
+                                handleFailedDownloadItem(item)
+                            } else if item.isDoneDownloading() {
+                                handleDoneDownloadItem(item)
+                            }
                         }
                     }
                 })
@@ -178,10 +200,23 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
         }
     }
     
+    private func handleDownloadTaskFailureFromDownloadItem(_ downloadItem: DownloadItem) {
+        var statusNotification = [String: Any]()
+        statusNotification["downloadItemId"] = downloadItem.id
+        statusNotification["libraryItemId"] = downloadItem.libraryItemId
+        statusNotification["episodeId"] = downloadItem.episodeId
+        statusNotification["itemTitle"] = downloadItem.itemTitle
+
+        let failedParts = downloadItem.downloadItemParts.filter { $0.failed }
+        statusNotification["parts"] = failedParts.compactMap { try? $0.asDictionary() }
+
+        self.notifyListeners("onDownloadItemFailed", data: statusNotification)
+    }
+
     private func handleDownloadTaskCompleteFromDownloadItem(_ downloadItem: DownloadItem) {
         var statusNotification = [String: Any]()
         statusNotification["libraryItemId"] = downloadItem.id
-        
+
         if ( downloadItem.didDownloadSuccessfully() ) {
             ApiClient.getLibraryItemWithProgress(libraryItemId: downloadItem.libraryItemId!, episodeId: downloadItem.episodeId) { [weak self] libraryItem in
                 guard let libraryItem = libraryItem else { self?.logger.error("LibraryItem not found"); return }
@@ -230,7 +265,7 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
         let libraryItemId = call.getString("libraryItemId")
         var episodeId = call.getString("episodeId")
         if ( episodeId == "null" ) { episodeId = nil }
-        
+
         logger.log("Download library item \(libraryItemId ?? "N/A") / episode \(episodeId ?? "N/A")")
         guard let libraryItemId = libraryItemId else { return call.resolve(["error": "libraryItemId not specified"]) }
         
@@ -258,7 +293,102 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
             }
         }
     }
-    
+
+    @objc func resumeDownload(_ call: CAPPluginCall) {
+        guard let downloadItemId = call.getString("downloadItemId") else {
+            call.resolve(["error": "downloadItemId not specified"])
+            return
+        }
+
+        guard let downloadItem = Database.shared.getDownloadItem(downloadItemId: downloadItemId) else {
+            call.resolve(["error": "Download not found or not interrupted"])
+            return
+        }
+
+        let failedPartsResults = downloadItem.downloadItemParts.filter("failed == true")
+        let partsToRetry = Array(failedPartsResults)
+        guard partsToRetry.count > 0 else {
+            call.resolve(["error": "Download not found or not interrupted"])
+            return
+        }
+
+        do {
+            let realm = try Realm()
+            try realm.write {
+                for part in partsToRetry {
+                    part.failed = false
+                    part.completed = false
+                    part.progress = 0
+                    part.bytesDownloaded = 0
+                }
+            }
+        } catch {
+            call.resolve(["error": "Failed to reset download"])
+            return
+        }
+
+        partsToRetry.forEach { part in
+            if let destinationUrl = part.destinationURL {
+                try? FileManager.default.removeItem(at: destinationUrl)
+            }
+        }
+
+        try? Database.shared.saveDownloadItem(downloadItem)
+
+        var tasks = [URLSessionDownloadTask]()
+        for part in partsToRetry {
+            guard let downloadUrl = part.downloadURL else { continue }
+            let task = session.downloadTask(with: downloadUrl)
+            task.taskDescription = part.id
+            tasks.append(task)
+        }
+
+        if let downloadDictionary = try? downloadItem.asDictionary() {
+            self.notifyListeners("onDownloadItem", data: downloadDictionary)
+        }
+
+        for part in partsToRetry {
+            if let partDictionary = try? part.asDictionary() {
+                self.notifyListeners("onDownloadItemPartUpdate", data: partDictionary)
+            }
+        }
+
+        tasks.forEach { $0.resume() }
+        progressStatusQueue.async(flags: .barrier) {
+            self.downloadItemProgress.updateValue(downloadItem.freeze(), forKey: downloadItem.id!)
+        }
+        notifyDownloadProgress()
+        call.resolve()
+    }
+
+    @objc func getDownloadQueue(_ call: CAPPluginCall) {
+        let downloads = Database.shared.getAllDownloadItems()
+        let items = downloads.compactMap { try? $0.asDictionary() }
+        call.resolve(["items": items])
+    }
+
+    private func restorePersistedDownloads() {
+        let downloads = Database.shared.getAllDownloadItems()
+        downloads.forEach { download in
+            if let downloadDictionary = try? download.asDictionary() {
+                self.notifyListeners("onDownloadItem", data: downloadDictionary)
+            }
+        }
+
+        session.getAllTasks { [weak self] tasks in
+            guard let self = self else { return }
+            self.progressStatusQueue.async(flags: .barrier) {
+                for task in tasks {
+                    if let partId = task.taskDescription,
+                       let downloadItem = Database.shared.getDownloadItem(downloadItemPartId: partId) {
+                        self.downloadItemProgress.updateValue(downloadItem.freeze(), forKey: downloadItem.id!)
+                    }
+                }
+            }
+            self.notifyDownloadProgress()
+        }
+    }
+
     private func startLibraryItemDownload(_ item: LibraryItem) throws {
         try startLibraryItemDownload(item, episode: nil)
     }

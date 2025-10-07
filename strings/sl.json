@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Podcast je bil uspešno ustvarjen",
   "ToastRSSFeedCloseFailed": "Vira RSS ni bilo mogoče zapreti",
   "ToastRSSFeedCloseSuccess": "Vir RSS je bil zaprt",
-  "ToastStreamingNotAllowedOnCellular": "Pretakanje ni dovoljeno na mobilnih podatkih"
+  "ToastStreamingNotAllowedOnCellular": "Pretakanje ni dovoljeno na mobilnih podatkih",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

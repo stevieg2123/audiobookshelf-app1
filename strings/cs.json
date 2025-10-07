@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Podcast byl úspěšně vytvořen",
   "ToastRSSFeedCloseFailed": "Nepodařilo se zavřít RSS kanál",
   "ToastRSSFeedCloseSuccess": "RSS kanál uzavřen",
-  "ToastStreamingNotAllowedOnCellular": "Přehrávání přes mobilní data není povoleno"
+  "ToastStreamingNotAllowedOnCellular": "Přehrávání přes mobilní data není povoleno",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

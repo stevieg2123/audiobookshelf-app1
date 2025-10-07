@@ -350,5 +350,10 @@
   "ToastPodcastCreateSuccess": "تم إنشاء البودكاست بنجاح",
   "ToastRSSFeedCloseFailed": "فشل إغلاق مغذّي RSS",
   "ToastRSSFeedCloseSuccess": "تم إغلاق مغذّي RSS",
-  "ToastStreamingNotAllowedOnCellular": "لا يُسمح بالبث عبر البيانات الخلوية"
+  "ToastStreamingNotAllowedOnCellular": "لا يُسمح بالبث عبر البيانات الخلوية",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

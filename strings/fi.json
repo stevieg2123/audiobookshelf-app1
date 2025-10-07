@@ -343,5 +343,10 @@
   "ToastPodcastCreateSuccess": "Podcastin luominen onnistui",
   "ToastRSSFeedCloseFailed": "RSS syötteen sulkeminen epäonnistui",
   "ToastRSSFeedCloseSuccess": "RSS syöte suljettu",
-  "ToastStreamingNotAllowedOnCellular": "Suoratoisto ei ole sallittu mobiilidatalla"
+  "ToastStreamingNotAllowedOnCellular": "Suoratoisto ei ole sallittu mobiilidatalla",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "已成功创建播客",
   "ToastRSSFeedCloseFailed": "关闭 RSS 源失败",
   "ToastRSSFeedCloseSuccess": "RSS 源已关闭",
-  "ToastStreamingNotAllowedOnCellular": "不允许通过移动数据进行流媒体播放"
+  "ToastStreamingNotAllowedOnCellular": "不允许通过移动数据进行流媒体播放",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

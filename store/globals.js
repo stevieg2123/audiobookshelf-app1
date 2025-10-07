@@ -43,6 +43,15 @@ export const state = () => ({
   rssFeedEntity: null
 })
 
+const updateDownloadFlags = (downloadItem) => {
+  if (!downloadItem) return
+  if (Array.isArray(downloadItem.downloadItemParts)) {
+    downloadItem.failed = downloadItem.downloadItemParts.some((dip) => dip.failed)
+  } else {
+    downloadItem.failed = false
+  }
+}
+
 export const getters = {
   getDownloadItem:
     (state) =>
@@ -134,6 +143,7 @@ export const mutations = {
     state.isModalOpen = val
   },
   addUpdateItemDownload(state, downloadItem) {
+    updateDownloadFlags(downloadItem)
     var index = state.itemDownloads.findIndex((i) => i.id == downloadItem.id)
     if (index >= 0) {
       state.itemDownloads.splice(index, 1, downloadItem)
@@ -165,6 +175,7 @@ export const mutations = {
     } else {
       downloadItem.itemProgress = 0
     }
+    updateDownloadFlags(downloadItem)
   },
   removeItemDownload(state, id) {
     state.itemDownloads = state.itemDownloads.filter((i) => i.id != id)

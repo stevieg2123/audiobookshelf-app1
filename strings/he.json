@@ -349,5 +349,10 @@
   "ToastPodcastCreateSuccess": "הפודקאסט נוצר בהצלחה",
   "ToastRSSFeedCloseFailed": "סגירת ערוץ ה-RSS נכשלה",
   "ToastRSSFeedCloseSuccess": "ערוץ ה-RSS נסגר בהצלחה",
-  "ToastStreamingNotAllowedOnCellular": "הזרמה אינה מותרת באמצעות נתונים סלולריים"
+  "ToastStreamingNotAllowedOnCellular": "הזרמה אינה מותרת באמצעות נתונים סלולריים",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Podcast aangemaakt",
   "ToastRSSFeedCloseFailed": "Sluiten RSS-feed mislukt",
   "ToastRSSFeedCloseSuccess": "RSS-feed gesloten",
-  "ToastStreamingNotAllowedOnCellular": "Streamen is niet toegstaan via mobiele verbinding"
+  "ToastStreamingNotAllowedOnCellular": "Streamen is niet toegstaan via mobiele verbinding",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }
