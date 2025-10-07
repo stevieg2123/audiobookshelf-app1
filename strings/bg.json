@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Подкаст успешно създаден",
   "ToastRSSFeedCloseFailed": "Неуспешно затваряне на RSS емисията",
   "ToastRSSFeedCloseSuccess": "RSS емисията е затворена",
-  "ToastStreamingNotAllowedOnCellular": "Стриймването не е разрешено чрез мобилни данни"
+  "ToastStreamingNotAllowedOnCellular": "Стриймването не е разрешено чрез мобилни данни",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

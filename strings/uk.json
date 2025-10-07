@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Подкаст успішно створено",
   "ToastRSSFeedCloseFailed": "Не вдалося закрити RSS-канал",
   "ToastRSSFeedCloseSuccess": "RSS-канал закрито",
-  "ToastStreamingNotAllowedOnCellular": "Трансляція через мобільний інтернет заборонена"
+  "ToastStreamingNotAllowedOnCellular": "Трансляція через мобільний інтернет заборонена",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

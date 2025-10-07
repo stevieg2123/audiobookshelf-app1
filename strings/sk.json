@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Podcast bol vytvorený",
   "ToastRSSFeedCloseFailed": "Odstránenie RSS zdroja zlyhalo",
   "ToastRSSFeedCloseSuccess": "RSS zdroj bol odstránený",
-  "ToastStreamingNotAllowedOnCellular": "Streamovanie cez mobilné dáta nie je povolené"
+  "ToastStreamingNotAllowedOnCellular": "Streamovanie cez mobilné dáta nie je povolené",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

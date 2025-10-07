@@ -220,6 +220,16 @@ class Database {
         let realm = try Realm()
         return try realm.write { realm.add(downloadItem, update: .modified) }
     }
+
+    public func getAllDownloadItems() -> [DownloadItem] {
+        do {
+            let realm = try Realm()
+            return Array(realm.objects(DownloadItem.self))
+        } catch {
+            debugPrint(error)
+            return []
+        }
+    }
     
     public func getDeviceSettings() -> DeviceSettings {
         let realm = try! Realm()

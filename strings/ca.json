@@ -279,5 +279,10 @@
   "ToastPodcastCreateFailed": "No s'ha pogut crear el pòdcast",
   "ToastPodcastCreateSuccess": "S'ha creat el pòdcast correctament",
   "ToastRSSFeedCloseFailed": "No s'ha pogut tancar el canal RSS",
-  "ToastRSSFeedCloseSuccess": "Canal RSS tancat"
+  "ToastRSSFeedCloseSuccess": "Canal RSS tancat",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }

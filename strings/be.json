@@ -355,5 +355,10 @@
   "ToastPodcastCreateSuccess": "Падкаст паспяхова створаны",
   "ToastRSSFeedCloseFailed": "Не ўдалося закрыць RSS-стужку",
   "ToastRSSFeedCloseSuccess": "RSS-стужка закрыта",
-  "ToastStreamingNotAllowedOnCellular": "Патокавая перадача праз мабільную сувязь забаронена"
+  "ToastStreamingNotAllowedOnCellular": "Патокавая перадача праз мабільную сувязь забаронена",
+  "LabelDownloadInterrupted": "Download interrupted",
+  "LabelRetry": "Retry",
+  "MessageNoActiveDownloads": "No active downloads",
+  "ToastDownloadInterrupted": "Download interrupted for {0}. You can retry from the Downloads screen.",
+  "ToastDownloadResumed": "Restarted download for {0}."
 }
