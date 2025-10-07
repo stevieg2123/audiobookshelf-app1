@@ -28,28 +28,29 @@ class InternalDownloadManager(
    * @throws IOException If an I/O error occurs.
    */
   @Throws(IOException::class)
-  fun download(url: String) {
+  fun download(url: String): Call {
     val request: Request = Request.Builder().url(url).addHeader("Accept-Encoding", "identity").build()
-    client.newCall(request)
-            .enqueue(
-                    object : Callback {
-                      override fun onFailure(call: Call, e: IOException) {
-                        Log.e(tag, "Download URL $url FAILED", e)
-                        progressCallback.onComplete(true)
-                      }
+    val call = client.newCall(request)
+    call.enqueue(
+            object : Callback {
+              override fun onFailure(call: Call, e: IOException) {
+                Log.e(tag, "Download URL $url FAILED", e)
+                progressCallback.onComplete(true, e.message ?: "Download failed")
+              }
 
-                      override fun onResponse(call: Call, response: Response) {
-                        response.body?.let { responseBody ->
-                          val length: Long = response.header("Content-Length")?.toLongOrNull() ?: 0L
-                          writer.write(responseBody.byteStream(), length)
+              override fun onResponse(call: Call, response: Response) {
+                response.body?.let { responseBody ->
+                  val length: Long = response.header("Content-Length")?.toLongOrNull() ?: 0L
+                  writer.write(responseBody.byteStream(), length)
+                }
+                        ?: run {
+                          Log.e(tag, "Response doesn't contain a file")
+                          progressCallback.onComplete(true, "Empty response body")
                         }
-                                ?: run {
-                                  Log.e(tag, "Response doesn't contain a file")
-                                  progressCallback.onComplete(true)
-                                }
-                      }
-                    }
-            )
+              }
+            }
+    )
+    return call
   }
 
   /**
@@ -91,9 +92,10 @@ class BinaryFileWriter(
       while (input.read(dataBuffer).also { readBytes = it } != -1) {
         totalBytes += readBytes
         outputStream.write(dataBuffer, 0, readBytes)
-        progressCallback.onProgress(totalBytes, (totalBytes * 100L) / length)
+        val percent = if (length > 0) (totalBytes * 100L) / length else 0L
+        progressCallback.onProgress(totalBytes, percent, length)
       }
-      progressCallback.onComplete(false)
+      progressCallback.onComplete(false, null)
       return totalBytes
     }
   }

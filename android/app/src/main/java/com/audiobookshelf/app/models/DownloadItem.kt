@@ -25,7 +25,10 @@ data class DownloadItem(
   val isInternalStorage get() = localFolder.id.startsWith("internal-")
 
   @get:JsonIgnore
-  val isDownloadFinished get() = !downloadItemParts.any { !it.completed || it.isMoving }
+  val isDownloadFinished get() = !downloadItemParts.any { (!it.completed && !it.paused) || it.isMoving }
+
+  @get:JsonIgnore
+  val hasFailures get() = downloadItemParts.any { it.failed || (it.paused && !it.completed) }
 
   @JsonIgnore
   fun getNextDownloadItemParts(limit:Int): MutableList<DownloadItemPart> {
@@ -33,7 +36,7 @@ data class DownloadItem(
     if (limit == 0) return itemParts
 
     for (it in downloadItemParts) {
-      if (!it.completed && it.downloadId == null) {
+      if (!it.completed && it.downloadId == null && !it.paused) {
         itemParts.add(it)
         if (itemParts.size >= limit) break
       }

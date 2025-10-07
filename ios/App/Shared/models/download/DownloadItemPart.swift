@@ -21,13 +21,15 @@ class DownloadItemPart: Object, Codable {
     @Persisted var completed: Bool = false
     @Persisted var moved: Bool = false
     @Persisted var failed: Bool = false
+    @Persisted var paused: Bool = false
     @Persisted var uri: String?
     @Persisted var destinationUri: String?
+    @Persisted var errorMessage: String?
     @Persisted var progress: Double = 0
     @Persisted var bytesDownloaded: Double = 0
-    
+
     private enum CodingKeys : String, CodingKey {
-        case id, downloadItemId, filename, fileSize, itemTitle, completed, moved, failed, progress, bytesDownloaded
+        case id, downloadItemId, filename, fileSize, itemTitle, completed, moved, failed, paused, errorMessage, progress, bytesDownloaded
     }
     
     override init() {
@@ -44,10 +46,12 @@ class DownloadItemPart: Object, Codable {
         completed = try values.decode(Bool.self, forKey: .completed)
         moved = try values.decode(Bool.self, forKey: .moved)
         failed = try values.decode(Bool.self, forKey: .failed)
+        paused = (try? values.decode(Bool.self, forKey: .paused)) ?? false
+        errorMessage = try? values.decode(String.self, forKey: .errorMessage)
         progress = try values.decode(Double.self, forKey: .progress)
         bytesDownloaded = try values.decode(Double.self, forKey: .bytesDownloaded)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -58,6 +62,8 @@ class DownloadItemPart: Object, Codable {
         try container.encode(completed, forKey: .completed)
         try container.encode(moved, forKey: .moved)
         try container.encode(failed, forKey: .failed)
+        try container.encode(paused, forKey: .paused)
+        try container.encode(errorMessage, forKey: .errorMessage)
         try container.encode(progress, forKey: .progress)
         try container.encode(bytesDownloaded, forKey: .bytesDownloaded)
     }

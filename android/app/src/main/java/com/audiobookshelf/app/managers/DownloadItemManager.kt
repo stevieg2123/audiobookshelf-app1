@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import okhttp3.Call
 
 /** Manages download items and their parts. */
 class DownloadItemManager(
@@ -45,20 +46,42 @@ class DownloadItemManager(
     Failed
   }
 
+  private fun getFailureReason(code: Int): String {
+    return when (code) {
+      DownloadManager.ERROR_CANNOT_RESUME -> "Cannot resume download"
+      DownloadManager.ERROR_DEVICE_NOT_FOUND -> "Destination not found"
+      DownloadManager.ERROR_FILE_ALREADY_EXISTS -> "File already exists"
+      DownloadManager.ERROR_FILE_ERROR -> "File system error"
+      DownloadManager.ERROR_HTTP_DATA_ERROR -> "Network data error"
+      DownloadManager.ERROR_INSUFFICIENT_SPACE -> "Not enough storage space"
+      DownloadManager.ERROR_TOO_MANY_REDIRECTS -> "Too many redirects"
+      DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> "Unhandled server response"
+      DownloadManager.ERROR_UNKNOWN -> "Unknown download error"
+      else -> "Download error ($code)"
+    }
+  }
+
   var downloadItemQueue: MutableList<DownloadItem> =
           mutableListOf() // All pending and downloading items
   var currentDownloadItemParts: MutableList<DownloadItemPart> =
           mutableListOf() // Item parts currently being downloaded
+  private val internalDownloadCalls: MutableMap<String, Call> = mutableMapOf()
 
   interface DownloadEventEmitter {
     fun onDownloadItem(downloadItem: DownloadItem)
     fun onDownloadItemPartUpdate(downloadItemPart: DownloadItemPart)
     fun onDownloadItemComplete(jsobj: JSObject)
+    fun onDownloadItemError(
+            downloadItem: DownloadItem,
+            downloadItemPart: DownloadItemPart,
+            errorMessage: String
+    )
+    fun onDownloadItemCancelled(downloadItemId: String)
   }
 
   interface InternalProgressCallback {
-    fun onProgress(totalBytesWritten: Long, progress: Long)
-    fun onComplete(failed: Boolean)
+    fun onProgress(totalBytesWritten: Long, progress: Long, totalBytes: Long)
+    fun onComplete(failed: Boolean, errorMessage: String?)
   }
 
   companion object {
@@ -73,6 +96,68 @@ class DownloadItemManager(
     downloadItemQueue.add(downloadItem)
     clientEventEmitter.onDownloadItem(downloadItem)
     checkUpdateDownloadQueue()
+  }
+
+  fun resumeDownloadItem(downloadItemId: String): Boolean {
+    val downloadItem = downloadItemQueue.find { it.id == downloadItemId }
+    if (downloadItem == null) {
+      Log.w(tag, "resumeDownloadItem: Download item not found $downloadItemId")
+      return false
+    }
+
+    downloadItem.downloadItemParts.forEach { part ->
+      if (part.paused || part.failed) {
+        part.paused = false
+        part.failed = false
+        part.errorMessage = null
+        part.downloadId = null
+        part.bytesDownloaded = 0
+        part.progress = 0
+        part.completed = false
+        removeDownloadArtifacts(part)
+        clientEventEmitter.onDownloadItemPartUpdate(part)
+      }
+    }
+
+    DeviceManager.dbManager.saveDownloadItem(downloadItem)
+    checkUpdateDownloadQueue()
+    return true
+  }
+
+  fun cancelDownloadItem(downloadItemId: String, deleteFiles: Boolean): Boolean {
+    val downloadItem = downloadItemQueue.find { it.id == downloadItemId }
+    if (downloadItem == null) {
+      Log.w(tag, "cancelDownloadItem: Download item not found $downloadItemId")
+      return false
+    }
+
+    val iterator = currentDownloadItemParts.iterator()
+    while (iterator.hasNext()) {
+      val part = iterator.next()
+      if (part.downloadItemId == downloadItem.id) {
+        if (part.isInternalStorage) {
+          internalDownloadCalls.remove(part.id)?.cancel()
+        } else {
+          part.downloadId?.let { downloadManager.remove(it) }
+        }
+        iterator.remove()
+      }
+    }
+
+    downloadItem.downloadItemParts.forEach { part ->
+      part.downloadId = null
+      part.completed = false
+      part.isMoving = false
+      part.paused = true
+      if (deleteFiles) {
+        removeDownloadArtifacts(part)
+      }
+    }
+
+    downloadItemQueue.remove(downloadItem)
+    DeviceManager.dbManager.removeDownloadItem(downloadItem.id)
+    clientEventEmitter.onDownloadItemCancelled(downloadItem.id)
+    return true
   }
 
   /** Checks and updates the download queue. */
@@ -116,14 +201,16 @@ class DownloadItemManager(
     val fileOutputStream = FileOutputStream(downloadItemPart.finalDestinationPath)
     val internalProgressCallback =
             object : InternalProgressCallback {
-              override fun onProgress(totalBytesWritten: Long, progress: Long) {
+              override fun onProgress(totalBytesWritten: Long, progress: Long, totalBytes: Long) {
                 downloadItemPart.bytesDownloaded = totalBytesWritten
-                downloadItemPart.progress = progress
+                downloadItemPart.progress =
+                        if (totalBytes > 0) progress else 0
               }
 
-              override fun onComplete(failed: Boolean) {
+              override fun onComplete(failed: Boolean, errorMessage: String?) {
                 downloadItemPart.failed = failed
                 downloadItemPart.completed = true
+                downloadItemPart.errorMessage = errorMessage
               }
             }
 
@@ -131,15 +218,20 @@ class DownloadItemManager(
             tag,
             "Start internal download to destination path ${downloadItemPart.finalDestinationPath} from ${downloadItemPart.serverUrl}"
     )
-    InternalDownloadManager(fileOutputStream, internalProgressCallback)
-            .download(downloadItemPart.serverUrl)
-    downloadItemPart.downloadId = 1
+    val call =
+            InternalDownloadManager(fileOutputStream, internalProgressCallback)
+                    .download(downloadItemPart.serverUrl)
+    internalDownloadCalls[downloadItemPart.id] = call
+    downloadItemPart.downloadId = System.currentTimeMillis()
     currentDownloadItemParts.add(downloadItemPart)
   }
 
   /** Starts an external download. */
   private fun startExternalDownload(downloadItemPart: DownloadItemPart) {
     val dlRequest = downloadItemPart.getDownloadRequest()
+    dlRequest.setAllowedOverMetered(true)
+    dlRequest.setAllowedOverRoaming(true)
+    dlRequest.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
     val downloadId = downloadManager.enqueue(dlRequest)
     downloadItemPart.downloadId = downloadId
     Log.d(tag, "checkUpdateDownloadQueue: Starting download item part, downloadId=$downloadId")
@@ -181,8 +273,20 @@ class DownloadItemManager(
     clientEventEmitter.onDownloadItemPartUpdate(downloadItemPart)
 
     if (downloadItemPart.completed) {
+      internalDownloadCalls.remove(downloadItemPart.id)
       val downloadItem = downloadItemQueue.find { it.id == downloadItemPart.downloadItemId }
-      downloadItem?.let { checkDownloadItemFinished(it) }
+      if (downloadItem == null) {
+        Log.e(tag, "Download item not found for completed internal part ${downloadItemPart.filename}")
+      } else if (downloadItemPart.failed) {
+        handleDownloadFailure(
+                downloadItem,
+                downloadItemPart,
+                downloadItemPart.errorMessage ?: "Internal download failed"
+        )
+      } else {
+        checkDownloadItemFinished(downloadItem)
+        DeviceManager.dbManager.saveDownloadItem(downloadItem)
+      }
       currentDownloadItemParts.remove(downloadItemPart)
     }
   }
@@ -208,11 +312,13 @@ class DownloadItemManager(
         val statusColumnIndex = it.getColumnIndex(DownloadManager.COLUMN_STATUS)
         val bytesDownloadedColumnIndex =
                 it.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+        val reasonColumnIndex = it.getColumnIndex(DownloadManager.COLUMN_REASON)
 
         val totalBytes = if (bytesColumnIndex >= 0) it.getInt(bytesColumnIndex) else 0
         val downloadStatus = if (statusColumnIndex >= 0) it.getInt(statusColumnIndex) else 0
         val bytesDownloadedSoFar =
                 if (bytesDownloadedColumnIndex >= 0) it.getLong(bytesDownloadedColumnIndex) else 0
+        val reason = if (reasonColumnIndex >= 0) it.getInt(reasonColumnIndex) else 0
         Log.d(
                 tag,
                 "checkDownloads Download ${downloadItemPart.filename} bytes $totalBytes | bytes dled $bytesDownloadedSoFar | downloadStatus $downloadStatus"
@@ -229,8 +335,7 @@ class DownloadItemManager(
           }
           DownloadManager.STATUS_FAILED -> {
             Log.d(tag, "checkDownloads Download ${downloadItemPart.filename} Failed")
-            downloadItemPart.completed = true
-            downloadItemPart.failed = true
+            downloadItemPart.errorMessage = getFailureReason(reason)
 
             DownloadCheckStatus.Failed
           }
@@ -249,8 +354,7 @@ class DownloadItemManager(
         }
       } else {
         Log.d(tag, "Download ${downloadItemPart.filename} not found in dlmanager")
-        downloadItemPart.completed = true
-        downloadItemPart.failed = true
+        downloadItemPart.errorMessage = "Download cancelled or missing"
         return DownloadCheckStatus.Failed
       }
     }
@@ -270,9 +374,86 @@ class DownloadItemManager(
       currentDownloadItemParts.remove(downloadItemPart)
     } else if (downloadCheckStatus == DownloadCheckStatus.Successful) {
       moveDownloadedFile(downloadItem, downloadItemPart)
-    } else if (downloadCheckStatus != DownloadCheckStatus.InProgress) {
-      checkDownloadItemFinished(downloadItem)
+    } else if (downloadCheckStatus == DownloadCheckStatus.Failed) {
+      handleDownloadFailure(
+              downloadItem,
+              downloadItemPart,
+              downloadItemPart.errorMessage ?: "Download failed"
+      )
       currentDownloadItemParts.remove(downloadItemPart)
+    }
+  }
+
+  private fun handleDownloadFailure(
+          downloadItem: DownloadItem,
+          downloadItemPart: DownloadItemPart,
+          errorMessage: String
+  ) {
+    Log.e(tag, "Download failed for ${downloadItemPart.filename}: $errorMessage")
+    downloadItemPart.completed = false
+    downloadItemPart.failed = true
+    downloadItemPart.paused = true
+    downloadItemPart.errorMessage = errorMessage
+    downloadItemPart.downloadId?.let {
+      if (!downloadItemPart.isInternalStorage) {
+        downloadManager.remove(it)
+      }
+    }
+    internalDownloadCalls.remove(downloadItemPart.id)?.cancel()
+    downloadItemPart.downloadId = null
+    downloadItemPart.bytesDownloaded = 0
+    downloadItemPart.progress = 0
+    downloadItemPart.moved = false
+    removeDownloadArtifacts(downloadItemPart)
+    clientEventEmitter.onDownloadItemPartUpdate(downloadItemPart)
+    val iterator = currentDownloadItemParts.iterator()
+    while (iterator.hasNext()) {
+      val part = iterator.next()
+      if (part.downloadItemId == downloadItem.id && part.id != downloadItemPart.id) {
+        if (part.isInternalStorage) {
+          internalDownloadCalls.remove(part.id)?.cancel()
+        } else {
+          part.downloadId?.let { downloadManager.remove(it) }
+        }
+        part.downloadId = null
+        part.paused = true
+        part.failed = false
+        part.completed = false
+        part.isMoving = false
+        part.bytesDownloaded = 0
+        part.progress = 0
+        iterator.remove()
+        clientEventEmitter.onDownloadItemPartUpdate(part)
+      }
+    }
+    downloadItem.downloadItemParts.forEach { part ->
+      if (!part.completed) {
+        part.paused = true
+      }
+    }
+    clientEventEmitter.onDownloadItemError(downloadItem, downloadItemPart, errorMessage)
+    DeviceManager.dbManager.saveDownloadItem(downloadItem)
+  }
+
+  private fun removeDownloadArtifacts(downloadItemPart: DownloadItemPart) {
+    try {
+      downloadItemPart.destinationUri.path?.let { path ->
+        val tempFile = File(path)
+        if (tempFile.exists()) {
+          tempFile.delete()
+        }
+      }
+    } catch (e: Exception) {
+      Log.w(tag, "Failed to delete temp file for ${downloadItemPart.filename}", e)
+    }
+
+    try {
+      val finalFile = File(downloadItemPart.finalDestinationPath)
+      if (finalFile.exists() && downloadItemPart.paused) {
+        finalFile.delete()
+      }
+    } catch (e: Exception) {
+      Log.w(tag, "Failed to delete incomplete file for ${downloadItemPart.filename}", e)
     }
   }
 
@@ -314,6 +495,7 @@ class DownloadItemManager(
 
                 downloadItemPart.moved = true
                 downloadItemPart.isMoving = false
+                DeviceManager.dbManager.saveDownloadItem(downloadItem)
                 checkDownloadItemFinished(downloadItem)
                 currentDownloadItemParts.remove(downloadItemPart)
               }

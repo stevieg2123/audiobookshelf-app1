@@ -12,7 +12,9 @@ export default {
     return {
       downloadItemListener: null,
       completeListener: null,
-      itemPartUpdateListener: null
+      itemPartUpdateListener: null,
+      errorListener: null,
+      cancelListener: null
     }
   },
   computed: {
@@ -76,17 +78,32 @@ export default {
     },
     onDownloadItemPartUpdate(itemPart) {
       this.$store.commit('globals/updateDownloadItemPart', itemPart)
+    },
+    onDownloadError(data) {
+      if (!data) return
+      const message = data.message || this.$strings?.MessageDownloadFailed || 'Download failed.'
+      this.$toast.error(message)
+    },
+    onDownloadCancelled(data) {
+      if (!data || !data.downloadItemId) return
+      const message = this.$strings?.MessageDownloadCancelled || 'Download cancelled.'
+      this.$toast.info(message)
+      this.$store.commit('globals/removeItemDownload', data.downloadItemId)
     }
   },
   async mounted() {
     this.downloadItemListener = await AbsDownloader.addListener('onDownloadItem', (data) => this.onDownloadItem(data))
     this.itemPartUpdateListener = await AbsDownloader.addListener('onDownloadItemPartUpdate', (data) => this.onDownloadItemPartUpdate(data))
     this.completeListener = await AbsDownloader.addListener('onItemDownloadComplete', (data) => this.onItemDownloadComplete(data))
+    this.errorListener = await AbsDownloader.addListener('onDownloadError', (data) => this.onDownloadError(data))
+    this.cancelListener = await AbsDownloader.addListener('onDownloadCancelled', (data) => this.onDownloadCancelled(data))
   },
   beforeDestroy() {
     this.downloadItemListener?.remove()
     this.completeListener?.remove()
     this.itemPartUpdateListener?.remove()
+    this.errorListener?.remove()
+    this.cancelListener?.remove()
   }
 }
 </script>

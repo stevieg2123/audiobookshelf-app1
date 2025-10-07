@@ -42,6 +42,28 @@ class AbsDownloader : Plugin() {
     override fun onDownloadItemComplete(jsobj:JSObject) {
       notifyListeners("onItemDownloadComplete", jsobj)
     }
+    override fun onDownloadItemError(
+            downloadItem: DownloadItem,
+            downloadItemPart: DownloadItemPart,
+            errorMessage: String
+    ) {
+      val payload = JSObject()
+      payload.put("downloadItemId", downloadItem.id)
+      payload.put("libraryItemId", downloadItem.libraryItemId)
+      payload.put("episodeId", downloadItem.episodeId ?: "")
+      payload.put("message", errorMessage)
+      payload.put(
+              "downloadItemPart",
+              JSObject(jacksonMapper.writeValueAsString(downloadItemPart))
+      )
+      notifyListeners("onDownloadError", payload)
+    }
+
+    override fun onDownloadItemCancelled(downloadItemId: String) {
+      val payload = JSObject()
+      payload.put("downloadItemId", downloadItemId)
+      notifyListeners("onDownloadCancelled", payload)
+    }
   })
 
   override fun load() {
@@ -106,6 +128,42 @@ class AbsDownloader : Plugin() {
           call.resolve(JSObject("{\"error\":\"Local Folder Not Found\"}"))
         }
       }
+    }
+  }
+
+  @PluginMethod
+  fun resumeDownloadItem(call: PluginCall) {
+    val downloadItemId = call.data.getString("downloadItemId")
+    if (downloadItemId.isNullOrEmpty()) {
+      Log.e(tag, "resumeDownloadItem called without downloadItemId")
+      call.resolve(JSObject("{\"error\":\"downloadItemId not specified\"}"))
+      return
+    }
+
+    val success = downloadItemManager.resumeDownloadItem(downloadItemId)
+    if (!success) {
+      call.resolve(JSObject("{\"error\":\"Download item not found\"}"))
+    } else {
+      call.resolve()
+    }
+  }
+
+  @PluginMethod
+  fun cancelDownloadItem(call: PluginCall) {
+    val downloadItemId = call.data.getString("downloadItemId")
+    val deleteFiles = call.getBoolean("deleteFiles", true) == true
+
+    if (downloadItemId.isNullOrEmpty()) {
+      Log.e(tag, "cancelDownloadItem called without downloadItemId")
+      call.resolve(JSObject("{\"error\":\"downloadItemId not specified\"}"))
+      return
+    }
+
+    val success = downloadItemManager.cancelDownloadItem(downloadItemId, deleteFiles)
+    if (!success) {
+      call.resolve(JSObject("{\"error\":\"Download item not found\"}"))
+    } else {
+      call.resolve()
     }
   }
 
