@@ -49,6 +49,7 @@ class DownloadItemManager(
           mutableListOf() // All pending and downloading items
   var currentDownloadItemParts: MutableList<DownloadItemPart> =
           mutableListOf() // Item parts currently being downloaded
+  @Volatile var downloadsPaused: Boolean = false
 
   interface DownloadEventEmitter {
     fun onDownloadItem(downloadItem: DownloadItem)
@@ -77,6 +78,10 @@ class DownloadItemManager(
 
   /** Checks and updates the download queue. */
   private fun checkUpdateDownloadQueue() {
+    if (downloadsPaused) {
+      Log.d(tag, "checkUpdateDownloadQueue: downloads paused, skipping queue update")
+      return
+    }
     for (downloadItem in downloadItemQueue) {
       val numPartsToGet = maxSimultaneousDownloads - currentDownloadItemParts.size
       val nextDownloadItemParts = downloadItem.getNextDownloadItemParts(numPartsToGet)
@@ -155,6 +160,13 @@ class DownloadItemManager(
       isDownloading = true
 
       while (currentDownloadItemParts.isNotEmpty()) {
+        if (downloadsPaused) {
+          Log.d(tag, "Downloads paused, waiting to resume")
+          while (downloadsPaused) {
+            delay(250)
+          }
+          continue
+        }
         val itemParts = currentDownloadItemParts.filter { !it.isMoving }
         for (downloadItemPart in itemParts) {
           if (downloadItemPart.isInternalStorage) {
@@ -173,6 +185,37 @@ class DownloadItemManager(
 
       Log.d(tag, "Finished watching downloads")
       isDownloading = false
+    }
+  }
+
+  fun pauseActiveDownloads() {
+    downloadsPaused = true
+    val ids = currentDownloadItemParts
+            .filter { !it.isInternalStorage }
+            .mapNotNull { it.downloadId }
+            .toLongArray()
+    callDownloadManagerHiddenMethod("pauseDownload", ids)
+  }
+
+  fun resumeActiveDownloads() {
+    downloadsPaused = false
+    val ids = currentDownloadItemParts
+            .filter { !it.isInternalStorage }
+            .mapNotNull { it.downloadId }
+            .toLongArray()
+    callDownloadManagerHiddenMethod("resumeDownload", ids)
+    if (!isDownloading && currentDownloadItemParts.isNotEmpty()) startWatchingDownloads()
+    checkUpdateDownloadQueue()
+  }
+
+  private fun callDownloadManagerHiddenMethod(methodName: String, ids: LongArray) {
+    if (ids.isEmpty()) return
+    try {
+      val method = downloadManager.javaClass.getMethod(methodName, LongArray::class.java)
+      method.isAccessible = true
+      method.invoke(downloadManager, ids)
+    } catch (error: Exception) {
+      Log.w(tag, "$methodName not available", error)
     }
   }
 

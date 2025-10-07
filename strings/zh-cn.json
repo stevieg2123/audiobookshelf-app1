@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "已成功创建播客",
   "ToastRSSFeedCloseFailed": "关闭 RSS 源失败",
   "ToastRSSFeedCloseSuccess": "RSS 源已关闭",
-  "ToastStreamingNotAllowedOnCellular": "不允许通过移动数据进行流媒体播放"
+  "ToastStreamingNotAllowedOnCellular": "不允许通过移动数据进行流媒体播放",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

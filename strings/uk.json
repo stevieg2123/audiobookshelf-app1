@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "Подкаст успішно створено",
   "ToastRSSFeedCloseFailed": "Не вдалося закрити RSS-канал",
   "ToastRSSFeedCloseSuccess": "RSS-канал закрито",
-  "ToastStreamingNotAllowedOnCellular": "Трансляція через мобільний інтернет заборонена"
+  "ToastStreamingNotAllowedOnCellular": "Трансляція через мобільний інтернет заборонена",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

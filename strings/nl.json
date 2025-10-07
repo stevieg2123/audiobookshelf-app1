@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "Podcast aangemaakt",
   "ToastRSSFeedCloseFailed": "Sluiten RSS-feed mislukt",
   "ToastRSSFeedCloseSuccess": "RSS-feed gesloten",
-  "ToastStreamingNotAllowedOnCellular": "Streamen is niet toegstaan via mobiele verbinding"
+  "ToastStreamingNotAllowedOnCellular": "Streamen is niet toegstaan via mobiele verbinding",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

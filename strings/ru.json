@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "Подкаст успешно создан",
   "ToastRSSFeedCloseFailed": "Не удалось закрыть RSS-ленту",
   "ToastRSSFeedCloseSuccess": "RSS-лента закрыта",
-  "ToastStreamingNotAllowedOnCellular": "Потоковая передача данных по сотовой сети запрещена"
+  "ToastStreamingNotAllowedOnCellular": "Потоковая передача данных по сотовой сети запрещена",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

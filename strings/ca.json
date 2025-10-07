@@ -279,5 +279,6 @@
   "ToastPodcastCreateFailed": "No s'ha pogut crear el pòdcast",
   "ToastPodcastCreateSuccess": "S'ha creat el pòdcast correctament",
   "ToastRSSFeedCloseFailed": "No s'ha pogut tancar el canal RSS",
-  "ToastRSSFeedCloseSuccess": "Canal RSS tancat"
+  "ToastRSSFeedCloseSuccess": "Canal RSS tancat",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

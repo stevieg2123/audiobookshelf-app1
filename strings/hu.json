@@ -355,5 +355,6 @@
   "ToastPodcastCreateSuccess": "A podcast sikeresen létrehozva",
   "ToastRSSFeedCloseFailed": "Az RSS hírcsatorna bezárása sikertelen",
   "ToastRSSFeedCloseSuccess": "Az RSS hírcsatorna sikeresen bezárva",
-  "ToastStreamingNotAllowedOnCellular": "Streamelés mobilinternettel nem engedélyezett"
+  "ToastStreamingNotAllowedOnCellular": "Streamelés mobilinternettel nem engedélyezett",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }

@@ -183,5 +183,6 @@
   "ToastPodcastCreateFailed": "Tinklalaidės sukurti nepavyko",
   "ToastPodcastCreateSuccess": "Tinklalaidė sėkmingai sukurta",
   "ToastRSSFeedCloseFailed": "RSS srauto uždaryti nepavyko",
-  "ToastRSSFeedCloseSuccess": "RSS srautas uždarytas"
+  "ToastRSSFeedCloseSuccess": "RSS srautas uždarytas",
+  "ToastDownloadSocketDisconnected": "Downloads paused while disconnected from the server. They will resume automatically when reconnected."
 }
