@@ -276,6 +276,42 @@ class DownloadItemManager(
     }
   }
 
+  /** Cancels an in-flight download item. */
+  fun cancelDownloadItem(downloadItemId: String): Boolean {
+    val downloadItem = downloadItemQueue.find { it.id == downloadItemId }
+            ?: return false
+
+    Log.i(tag, "Cancel download item ${downloadItem.itemTitle}")
+
+    currentDownloadItemParts.removeAll { it.downloadItemId == downloadItemId }
+
+    downloadItem.downloadItemParts.forEach { downloadItemPart ->
+      downloadItemPart.downloadId?.let { downloadId ->
+        if (!downloadItem.isInternalStorage) {
+          downloadManager.remove(downloadId)
+        }
+      }
+      downloadItemPart.failed = true
+      downloadItemPart.completed = true
+      clientEventEmitter.onDownloadItemPartUpdate(downloadItemPart)
+    }
+
+    downloadItemQueue.remove(downloadItem)
+    DeviceManager.dbManager.removeDownloadItem(downloadItem.id)
+
+    val jsobj = JSObject().apply {
+      put("downloadItemId", downloadItem.id)
+      put("libraryItemId", downloadItem.libraryItemId)
+      downloadItem.episodeId?.let { put("episodeId", it) }
+      put("cancelled", true)
+      put("failed", true)
+    }
+
+    clientEventEmitter.onDownloadItemComplete(jsobj)
+
+    return true
+  }
+
   /** Moves the downloaded file to its final destination. */
   private fun moveDownloadedFile(downloadItem: DownloadItem, downloadItemPart: DownloadItemPart) {
     val file = DocumentFileCompat.fromUri(mainActivity, downloadItemPart.destinationUri)
@@ -352,10 +388,15 @@ class DownloadItemManager(
                   "Item download complete ${downloadItem.itemTitle} | local library item id: ${downloadItemScanResult?.localLibraryItem?.id}"
           )
 
-          val jsobj =
-                  JSObject().apply {
-                    put("libraryItemId", downloadItem.id)
+    val jsobj =
+            JSObject().apply {
+                    put("downloadItemId", downloadItem.id)
+                    put("libraryItemId", downloadItem.libraryItemId)
                     put("localFolderId", downloadItem.localFolder.id)
+                    downloadItem.episodeId?.let { put("episodeId", it) }
+                    val failed = downloadItem.downloadItemParts.any { it.failed }
+                    put("failed", failed)
+                    put("success", !failed)
 
                     downloadItemScanResult?.localLibraryItem?.let { localLibraryItem ->
                       put(

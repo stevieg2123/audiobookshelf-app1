@@ -11,12 +11,18 @@
     <modals-rssfeeds-rss-feed-modal />
     <app-side-drawer :key="currentLang" />
     <readers-reader />
+    <div
+      v-if="$isDev && gitHash"
+      class="fixed bottom-4 right-4 bg-bg border border-border rounded-md px-3 py-1 text-xs font-semibold text-fg shadow-lg"
+    >
+      DEV {{ gitHash }}
+    </div>
   </div>
 </template>
 
 <script>
 import { CapacitorHttp } from '@capacitor/core'
-import { AbsLogger } from '@/plugins/capacitor'
+import { AbsLogger, AbsDownloader } from '@/plugins/capacitor'
 
 export default {
   data() {
@@ -25,7 +31,8 @@ export default {
       hasMounted: false,
       disconnectTime: 0,
       timeLostFocus: 0,
-      currentLang: null
+      currentLang: null,
+      socketListenersBound: false
     }
   },
   watch: {
@@ -83,6 +90,12 @@ export default {
       set(val) {
         this.$store.commit('setAttemptingConnection', val)
       }
+    },
+    gitHash() {
+      return this.$config?.gitHash || ''
+    },
+    downloadItems() {
+      return this.$store.state.globals.itemDownloads
     }
   },
   methods: {
@@ -196,6 +209,35 @@ export default {
     },
     socketConnectionFailed(err) {
       this.$toast.error('Socket connection error: ' + err.message)
+    },
+    async cancelActiveDownloads(reason) {
+      if (!this.downloadItems.length) return
+
+      this.$store.commit('globals/markAllDownloadsStopped', { reason })
+
+      if (this.$platform === 'web') return
+
+      for (const download of this.downloadItems) {
+        try {
+          await AbsDownloader.cancelDownloadItem({ downloadItemId: download.id })
+        } catch (error) {
+          console.warn('Failed to cancel download item', download.id, error)
+        }
+      }
+    },
+    async onSocketStalled(payload) {
+      console.warn('[default] socket stalled', payload)
+      const reason =
+        this.$strings?.MessageDownloadsStoppedConnectionLost ||
+        'Downloads paused because the server connection was lost.'
+      await this.cancelActiveDownloads(reason)
+    },
+    onSocketConnectionUpdate(isConnected) {
+      if (isConnected) {
+        console.log('[default] socket connection restored')
+      } else {
+        console.log('[default] socket connection lost')
+      }
     },
     async initLibraries() {
       if (this.inittingLibraries) {
@@ -327,6 +369,12 @@ export default {
     this.$socket.on('user_updated', this.userUpdated)
     this.$socket.on('user_media_progress_updated', this.userMediaProgressUpdated)
 
+    if (this.$socket && !this.socketListenersBound) {
+      this.$socket.on('connection-update', this.onSocketConnectionUpdate)
+      this.$socket.on('connection-stalled', this.onSocketStalled)
+      this.socketListenersBound = true
+    }
+
     if (this.$store.state.isFirstLoad) {
       AbsLogger.info({ tag: 'default', message: `mounted: initializing first load (${this.$platform} v${this.$config.version})` })
       this.$store.commit('setIsFirstLoad', false)
@@ -361,6 +409,11 @@ export default {
     document.removeEventListener('visibilitychange', this.visibilityChanged)
     this.$socket.off('user_updated', this.userUpdated)
     this.$socket.off('user_media_progress_updated', this.userMediaProgressUpdated)
+    if (this.$socket && this.socketListenersBound) {
+      this.$socket.off('connection-update', this.onSocketConnectionUpdate)
+      this.$socket.off('connection-stalled', this.onSocketStalled)
+      this.socketListenersBound = false
+    }
   }
 }
 </script>

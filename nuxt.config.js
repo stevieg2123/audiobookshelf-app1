@@ -1,4 +1,19 @@
 const pkg = require('./package.json')
+const { execSync } = require('child_process')
+
+const resolveGitHash = () => {
+  if (process.env.GIT_COMMIT_HASH) {
+    return process.env.GIT_COMMIT_HASH
+  }
+
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch (error) {
+    return 'unknown'
+  }
+}
+
+const gitHash = resolveGitHash()
 
 export default {
   ssr: false,
@@ -11,7 +26,8 @@ export default {
   },
 
   publicRuntimeConfig: {
-    version: pkg.version
+    version: pkg.version,
+    gitHash
   },
 
   head: {

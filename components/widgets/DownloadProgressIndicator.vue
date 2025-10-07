@@ -19,9 +19,16 @@ export default {
     downloadItems() {
       return this.$store.state.globals.itemDownloads
     },
+    activeDownloadItems() {
+      return this.downloadItems.filter((downloadItem) => downloadItem.status === 'active')
+    },
     downloadItemParts() {
       let parts = []
-      this.downloadItems.forEach((di) => parts.push(...di.downloadItemParts))
+      this.activeDownloadItems.forEach((di) => {
+        if (di.downloadItemParts?.length) {
+          parts.push(...di.downloadItemParts)
+        }
+      })
       return parts
     },
     downloadItemPartsRemaining() {
@@ -43,13 +50,52 @@ export default {
     }
   },
   methods: {
+    resolveDownloadItem(data) {
+      if (!data) return null
+
+      if (data.downloadItemId) {
+        return this.downloadItems.find((di) => di.id === data.downloadItemId)
+      }
+
+      if (data.episodeId) {
+        return this.downloadItems.find(
+          (di) => di.libraryItemId === data.libraryItemId && di.episodeId === data.episodeId
+        )
+      }
+
+      return this.downloadItems.find((di) => di.libraryItemId === data.libraryItemId)
+    },
     clickedIt() {
       this.$router.push('/downloading')
     },
     onItemDownloadComplete(data) {
       console.log('DownloadProgressIndicator onItemDownloadComplete', JSON.stringify(data))
-      if (!data || !data.libraryItemId) {
+      if (!data || (!data.libraryItemId && !data.downloadItemId)) {
         console.error('Invalid item download complete payload')
+        return
+      }
+
+      const downloadItem = this.resolveDownloadItem(data)
+      const hasFailedParts = downloadItem?.downloadItemParts?.some((part) => part.failed)
+      const wasCancelled = !!data.cancelled
+      const failed = !!data.failed || hasFailedParts
+
+      if (downloadItem && (failed || wasCancelled)) {
+        const status = wasCancelled ? 'stopped' : 'failed'
+        const messageKey = wasCancelled
+          ? 'MessageDownloadsStoppedConnectionLost'
+          : 'MessageDownloadFailed'
+        const message = this.$strings?.[messageKey] || null
+        this.$store.commit('globals/setDownloadItemStatus', {
+          id: downloadItem.id,
+          status,
+          message
+        })
+
+        if (failed && !wasCancelled && message) {
+          this.$toast.error(message)
+        }
+
         return
       }
 
@@ -64,13 +110,18 @@ export default {
         this.$store.commit('globals/updateLocalMediaProgress', data.localMediaProgress)
       }
 
-      this.$store.commit('globals/removeItemDownload', data.libraryItemId)
+      const removalId = downloadItem?.id || data.downloadItemId || data.libraryItemId
+      this.$store.commit('globals/removeItemDownload', removalId)
     },
     onDownloadItem(downloadItem) {
       console.log('DownloadProgressIndicator onDownloadItem', JSON.stringify(downloadItem))
 
       downloadItem.itemProgress = 0
-      downloadItem.episodes = downloadItem.downloadItemParts.filter((dip) => dip.episode).map((dip) => dip.episode)
+      downloadItem.status = 'active'
+      downloadItem.statusMessage = null
+      downloadItem.episodes = downloadItem.downloadItemParts
+        .filter((dip) => dip.episode)
+        .map((dip) => dip.episode)
 
       this.$store.commit('globals/addUpdateItemDownload', downloadItem)
     },

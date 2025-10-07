@@ -129,45 +129,120 @@ export const actions = {
   }
 }
 
+const normalizeDownloadItemPart = (part) => {
+  return {
+    ...part,
+    bytesDownloaded: Number(part.bytesDownloaded) || 0,
+    fileSize: Number(part.fileSize) || 0
+  }
+}
+
+const normalizeDownloadItem = (downloadItem) => {
+  const normalizedParts = (downloadItem.downloadItemParts || []).map((part) => normalizeDownloadItemPart(part))
+
+  return {
+    ...downloadItem,
+    downloadItemParts: normalizedParts,
+    itemProgress: downloadItem.itemProgress || 0,
+    status: downloadItem.status || 'active',
+    statusMessage: downloadItem.statusMessage || null,
+    lastUpdated: Date.now()
+  }
+}
+
+const computeItemProgress = (downloadItemParts) => {
+  let totalBytes = 0
+  let totalBytesDownloaded = 0
+
+  downloadItemParts.forEach((part) => {
+    totalBytes += part.completed ? Number(part.bytesDownloaded) : Number(part.fileSize)
+    totalBytesDownloaded += Number(part.bytesDownloaded)
+  })
+
+  if (!totalBytes) return 0
+  return Math.min(1, totalBytesDownloaded / totalBytes)
+}
+
 export const mutations = {
   setIsModalOpen(state, val) {
     state.isModalOpen = val
   },
   addUpdateItemDownload(state, downloadItem) {
-    var index = state.itemDownloads.findIndex((i) => i.id == downloadItem.id)
+    const normalized = normalizeDownloadItem(downloadItem)
+    const index = state.itemDownloads.findIndex((i) => i.id == normalized.id)
     if (index >= 0) {
-      state.itemDownloads.splice(index, 1, downloadItem)
+      state.itemDownloads.splice(index, 1, normalized)
     } else {
-      state.itemDownloads.push(downloadItem)
+      state.itemDownloads.push(normalized)
     }
   },
   updateDownloadItemPart(state, downloadItemPart) {
-    const downloadItem = state.itemDownloads.find((i) => i.id == downloadItemPart.downloadItemId)
-    if (!downloadItem) {
+    const downloadIndex = state.itemDownloads.findIndex((i) => i.id == downloadItemPart.downloadItemId)
+    if (downloadIndex === -1) {
       console.error('updateDownloadItemPart: Download item not found for itemPart', JSON.stringify(downloadItemPart))
       return
     }
 
-    let totalBytes = 0
-    let totalBytesDownloaded = 0
-    downloadItem.downloadItemParts = downloadItem.downloadItemParts.map((dip) => {
-      let newDip = dip.id == downloadItemPart.id ? downloadItemPart : dip
+    const downloadItem = state.itemDownloads[downloadIndex]
 
-      totalBytes += newDip.completed ? Number(newDip.bytesDownloaded) : Number(newDip.fileSize)
-      totalBytesDownloaded += Number(newDip.bytesDownloaded)
-
-      return newDip
+    const updatedParts = downloadItem.downloadItemParts.map((dip) => {
+      if (dip.id === downloadItemPart.id) {
+        return normalizeDownloadItemPart({ ...dip, ...downloadItemPart })
+      }
+      return dip
     })
 
-    if (totalBytes > 0) {
-      downloadItem.itemProgress = Math.min(1, totalBytesDownloaded / totalBytes)
-      console.log(`updateDownloadItemPart: filename=${downloadItemPart.filename}, totalBytes=${totalBytes}, downloaded=${totalBytesDownloaded}, itemProgress=${downloadItem.itemProgress}`)
-    } else {
-      downloadItem.itemProgress = 0
+    const itemProgress = computeItemProgress(updatedParts)
+    let status = downloadItem.status
+    let statusMessage = downloadItem.statusMessage
+
+    if (downloadItemPart.failed) {
+      status = 'failed'
     }
+
+    const updatedDownloadItem = {
+      ...downloadItem,
+      downloadItemParts: updatedParts,
+      itemProgress,
+      status,
+      statusMessage,
+      lastUpdated: Date.now()
+    }
+
+    console.log(
+      `updateDownloadItemPart: filename=${downloadItemPart.filename}, itemProgress=${updatedDownloadItem.itemProgress}, status=${updatedDownloadItem.status}`
+    )
+
+    state.itemDownloads.splice(downloadIndex, 1, updatedDownloadItem)
   },
   removeItemDownload(state, id) {
     state.itemDownloads = state.itemDownloads.filter((i) => i.id != id)
+  },
+  setDownloadItemStatus(state, { id, status, message = null }) {
+    const index = state.itemDownloads.findIndex((i) => i.id === id)
+    if (index === -1) return
+
+    const downloadItem = state.itemDownloads[index]
+    const updatedDownloadItem = {
+      ...downloadItem,
+      status,
+      statusMessage: message,
+      lastUpdated: Date.now()
+    }
+
+    state.itemDownloads.splice(index, 1, updatedDownloadItem)
+  },
+  markAllDownloadsStopped(state, { reason = null } = {}) {
+    const timestamp = Date.now()
+    state.itemDownloads = state.itemDownloads.map((downloadItem) => {
+      if (downloadItem.status === 'completed' || downloadItem.status === 'failed') return downloadItem
+      return {
+        ...downloadItem,
+        status: 'stopped',
+        statusMessage: reason,
+        lastUpdated: timestamp
+      }
+    })
   },
   setBookshelfListView(state, val) {
     state.bookshelfListView = val

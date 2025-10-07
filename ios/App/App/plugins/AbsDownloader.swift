@@ -14,7 +14,8 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
     public var identifier = "AbsDownloaderPlugin"
     public var jsName = "AbsDownloader"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "downloadLibraryItem", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "downloadLibraryItem", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "cancelDownloadItem", returnType: CAPPluginReturnPromise)
     ]
     
     static private let downloadsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -180,8 +181,16 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
     
     private func handleDownloadTaskCompleteFromDownloadItem(_ downloadItem: DownloadItem) {
         var statusNotification = [String: Any]()
-        statusNotification["libraryItemId"] = downloadItem.id
-        
+        if let downloadItemId = downloadItem.id {
+            statusNotification["downloadItemId"] = downloadItemId
+        }
+        if let libraryItemId = downloadItem.libraryItemId {
+            statusNotification["libraryItemId"] = libraryItemId
+        }
+        if let episodeId = downloadItem.episodeId {
+            statusNotification["episodeId"] = episodeId
+        }
+
         if ( downloadItem.didDownloadSuccessfully() ) {
             ApiClient.getLibraryItemWithProgress(libraryItemId: downloadItem.libraryItemId!, episodeId: downloadItem.episodeId) { [weak self] libraryItem in
                 guard let libraryItem = libraryItem else { self?.logger.error("LibraryItem not found"); return }
@@ -215,10 +224,15 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
                     try? localMediaProgress.save()
                     statusNotification["localMediaProgress"] = try? localMediaProgress.asDictionary()
                 }
-                
+
+                statusNotification["failed"] = false
+                statusNotification["success"] = true
+
                 self?.notifyListeners("onItemDownloadComplete", data: statusNotification)
             }
         } else {
+            statusNotification["failed"] = true
+            statusNotification["success"] = false
             self.notifyListeners("onItemDownloadComplete", data: statusNotification)
         }
     }
@@ -256,6 +270,60 @@ public class AbsDownloader: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDeleg
             } else {
                 call.resolve(["error": "Server request failed"])
             }
+        }
+    }
+
+    @objc func cancelDownloadItem(_ call: CAPPluginCall) {
+        guard let downloadItemId = call.getString("downloadItemId") else {
+            call.resolve(["success": false, "error": "downloadItemId not specified"])
+            return
+        }
+
+        guard let downloadItem = Database.shared.getDownloadItem(downloadItemId: downloadItemId) else {
+            call.resolve(["success": false, "error": "Download item not found"])
+            return
+        }
+
+        session.getAllTasks { [weak self] tasks in
+            guard let self = self else { return }
+
+            for task in tasks {
+                if let description = task.taskDescription,
+                   downloadItem.downloadItemParts.contains(where: { $0.id == description }) {
+                    task.cancel()
+                }
+            }
+
+            do {
+                let realm = try Realm()
+                try realm.write {
+                    downloadItem.downloadItemParts.forEach { part in
+                        part.failed = true
+                        part.completed = true
+                    }
+                }
+            } catch {
+                self.logger.error("Failed to mark cancelled download parts")
+            }
+
+            var statusNotification = [String: Any]()
+            if let downloadItemId = downloadItem.id {
+                statusNotification["downloadItemId"] = downloadItemId
+            }
+            if let libraryItemId = downloadItem.libraryItemId {
+                statusNotification["libraryItemId"] = libraryItemId
+            }
+            if let episodeId = downloadItem.episodeId {
+                statusNotification["episodeId"] = episodeId
+            }
+            statusNotification["cancelled"] = true
+            statusNotification["failed"] = true
+
+            self.notifyListeners("onItemDownloadComplete", data: statusNotification)
+
+            try? downloadItem.delete()
+
+            call.resolve(["success": true])
         }
     }
     

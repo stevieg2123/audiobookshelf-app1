@@ -109,6 +109,27 @@ class AbsDownloader : Plugin() {
     }
   }
 
+  @PluginMethod
+  fun cancelDownloadItem(call: PluginCall) {
+    val downloadItemId = call.data.getString("downloadItemId")
+    if (downloadItemId == null || downloadItemId.isEmpty()) {
+      val result = JSObject()
+      result.put("success", false)
+      result.put("error", "downloadItemId is required")
+      call.resolve(result)
+      return
+    }
+
+    val cancelled = downloadItemManager.cancelDownloadItem(downloadItemId)
+    val result = JSObject()
+    result.put("success", cancelled)
+    if (!cancelled) {
+      result.put("error", "Download item not found")
+    }
+
+    call.resolve(result)
+  }
+
   // Item filenames could be the same if they are in sub-folders, this will make them unique
   private fun getFilenameFromRelPath(relPath: String): String {
     var cleanedRelPath = relPath.replace("\\", "_").replace("/", "_")

@@ -12,6 +12,8 @@ class ServerSocket extends EventEmitter {
     this.isAuthenticated = false
 
     this.lastReconnectAttemptTime = 0
+    this.reconnectAttemptThreshold = 5
+    this.reconnectStallNotified = false
   }
 
   $on(evt, callback) {
@@ -26,6 +28,7 @@ class ServerSocket extends EventEmitter {
 
   connect(serverAddress, token) {
     this.serverAddress = serverAddress
+    this.reconnectStallNotified = false
 
     const serverUrl = new URL(serverAddress)
     const serverHost = `${serverUrl.protocol}//${serverUrl.host}`
@@ -79,6 +82,7 @@ class ServerSocket extends EventEmitter {
     this.connected = true
     this.$store.commit('setSocketConnected', true)
     this.emit('connection-update', true)
+    this.reconnectStallNotified = false
     this.sendAuthenticate()
   }
 
@@ -86,6 +90,11 @@ class ServerSocket extends EventEmitter {
     const timeSinceLastReconnectAttempt = this.lastReconnectAttemptTime ? Date.now() - this.lastReconnectAttemptTime : 0
     this.lastReconnectAttemptTime = Date.now()
     console.log(`[SOCKET] Reconnect attempt ${attemptNumber} ${timeSinceLastReconnectAttempt > 0 ? `after ${timeSinceLastReconnectAttempt}ms` : ''}`)
+
+    if (!this.reconnectStallNotified && attemptNumber >= this.reconnectAttemptThreshold) {
+      this.reconnectStallNotified = true
+      this.emit('connection-stalled', { attemptNumber })
+    }
   }
 
   onReconnectError(error) {
@@ -94,6 +103,10 @@ class ServerSocket extends EventEmitter {
 
   onReconnectFailed(error) {
     console.log('[SOCKET] Reconnect failed', error)
+    if (!this.reconnectStallNotified) {
+      this.reconnectStallNotified = true
+      this.emit('connection-stalled', { reason: error })
+    }
   }
 
   onDisconnect(reason) {
